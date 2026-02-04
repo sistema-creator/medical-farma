@@ -1,0 +1,106 @@
+{
+    "name": "5. Gestión de Cuentas (Medical Farma)",
+    "settings": {},
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "gestion-cuentas",
+                "options": {}
+            },
+            "name": "Webhook: Cambio Estado",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json[\"body\"][\"nuevo_estado\"]}}",
+                            "value2": "aprobado"
+                        }
+                    ]
+                }
+            },
+            "name": "Es Aprobación?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                350,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "subject": "✅ ¡Cuenta Aprobada! Bienvenido a Medical Farma",
+                "message": "Hola {{$json[\"body\"][\"nombre_completo\"]}},\n\nNos complace informarte que tu solicitud de cuenta ha sido aprobada.\n\nYa puedes acceder al catálogo completo y realizar pedidos en nuestro portal.\n\nAcceso: https://medical-farma.com/login\n\n¡Gracias por elegirnos!"
+            },
+            "name": "Email: Aprobación",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 1,
+            "position": [
+                600,
+                200
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "smtp-credentials"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "subject": "⚠️ Notificación sobre tu cuenta de Medical Farma",
+                "message": "Hola {{$json[\"body\"][\"nombre_completo\"]}},\n\nTe informamos que el estado de tu cuenta ha sido actualizado a: {{$json[\"body\"][\"nuevo_estado\"]}}.\n\nSi tienes dudas sobre este cambio, por favor contacta a nuestro departamento de administración o a tu vendedor asignado.\n\nAtentamente,\nMedical Farma S.A."
+            },
+            "name": "Email: Otros Estados",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 1,
+            "position": [
+                600,
+                400
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "smtp-credentials"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook: Cambio Estado": {
+            "main": [
+                [
+                    {
+                        "node": "Es Aprobación?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Es Aprobación?": {
+            "main": [
+                [
+                    {
+                        "node": "Email: Aprobación",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Email: Otros Estados",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

@@ -1,0 +1,80 @@
+{
+    "name": "6. Alertas de Morosidad (Medical Farma)",
+    "settings": {},
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "alerta-morosidad",
+                "options": {}
+            },
+            "name": "Webhook: Alerta Pago",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "subject": "📄 Recordatorio de Pago Pendiente - Medical Farma",
+                "message": "Estimados {{$json[\"body\"][\"institucion\"]}},\n\nLe enviamos este recordatorio sobre sus saldos pendientes de pago:\n\nMonto Vencido: ${{$json[\"body\"][\"monto_vencido\"]}}\nFacturas Pendientes: {{$json[\"body\"][\"detalle_facturas\"]}}\n\nLe solicitamos regularizar su situación a la brevedad para evitar interrupciones en el servicio.\n\nPuede realizar el pago mediante transferencia bancaria o en nuestro portal de pagos.\n\nAtentamente,\nDepartamento de Cobranzas Medical Farma"
+            },
+            "name": "Email: Cobranzas",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 1,
+            "position": [
+                400,
+                300
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "smtp-credentials"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "subject": "🔔 Alerta de Morosidad Enviada: {{$json[\"body\"][\"institucion\"]}}",
+                "message": "Se ha enviado un recordatorio de pago al cliente {{$json[\"body\"][\"institucion\"]}}.\n\nMonto: ${{$json[\"body\"][\"monto_vencido\"]}}\nEmail del cliente: {{$json[\"body\"][\"email_cliente\"]}}"
+            },
+            "name": "Email: Log Admin",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "smtp-credentials"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook: Alerta Pago": {
+            "main": [
+                [
+                    {
+                        "node": "Email: Cobranzas",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email: Cobranzas": {
+            "main": [
+                [
+                    {
+                        "node": "Email: Log Admin",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

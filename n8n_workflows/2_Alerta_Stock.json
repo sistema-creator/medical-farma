@@ -1,0 +1,81 @@
+{
+    "name": "2. Alerta Stock (MEDICAL FARMA)",
+    "settings": {},
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "alerta-stock",
+                "options": {},
+                "responseMode": "lastNode"
+            },
+            "name": "Webhook: Alerta Stock",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "alerta-stock-medical-pharma"
+        },
+        {
+            "parameters": {
+                "fromEmail": "noreply@medical-farma.com",
+                "toEmail": "compras@medical-farma.com",
+                "subject": "⚠️ Alerta de Stock Bajo: {{$json[\"body\"][\"producto\"]}}",
+                "text": "Equipo de Compras,\n\nSe ha detectado stock bajo para el siguiente producto:\n\nProducto: {{$json[\"body\"][\"producto\"]}}\nSKU: {{$json[\"body\"][\"sku\"]}}\nStock Actual: {{$json[\"body\"][\"stock\"]}}\nStock Mínimo: {{$json[\"body\"][\"stock_minimo\"]}}\n\nPor favor gestionar reposición.\n\nMEDICAL FARMA S.A.",
+                "options": {}
+            },
+            "name": "Email a Compras",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                500,
+                300
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "smtp-credentials",
+                    "name": "SMTP Medical Pharma"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { \"success\": true, \"message\": \"Alerta de stock enviada\" } }}"
+            },
+            "name": "Respuesta Exitosa",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                750,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook: Alerta Stock": {
+            "main": [
+                [
+                    {
+                        "node": "Email a Compras",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email a Compras": {
+            "main": [
+                [
+                    {
+                        "node": "Respuesta Exitosa",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

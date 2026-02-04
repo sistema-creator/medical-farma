@@ -1,0 +1,233 @@
+{
+    "name": "7. Asistente IA Vendedores (MEDICAL FARMA)",
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "asistente-ia",
+                "options": {},
+                "responseMode": "lastNode"
+            },
+            "name": "Webhook: Consulta IA",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                250,
+                400
+            ],
+            "webhookId": "asistente-ia-medical-pharma"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT id, nombre, categoria, stock_actual, stock_minimo, precio_unitario, precio_lote, marcas, descripcion_tecnica FROM productos WHERE estado = 'activo' ORDER BY nombre LIMIT 50"
+            },
+            "name": "Obtener Productos",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.4,
+            "position": [
+                500,
+                300
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "supabase-credentials",
+                    "name": "Supabase Medical Pharma"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT id, nombre_completo, email, telefono, dni_cuit FROM usuarios WHERE rol = 'cliente' AND aprobado = true LIMIT 20"
+            },
+            "name": "Obtener Clientes",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.4,
+            "position": [
+                500,
+                500
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "supabase-credentials",
+                    "name": "Supabase Medical Pharma"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Construir contexto para Gemini\nconst productos = $input.first().json.Obtener_Productos || [];\nconst clientes = $input.first().json.Obtener_Clientes || [];\nconst consulta = $json.body.message;\nconst usuarioId = $json.body.usuario_id;\n\n// Preparar contexto de productos\nlet contextoProdutos = \"CATÁLOGO DE PRODUCTOS:\\n\";\nproductos.forEach(p => {\n  contextoProdutos += `- ${p.nombre} (${p.categoria})\\n`;\n  contextoProdutos += `  Stock: ${p.stock_actual} unidades`;\n  if (p.stock_actual < p.stock_minimo) {\n    contextoProdutos += \" ⚠️ STOCK BAJO\";\n  }\n  contextoProdutos += `\\n  Precio: $${p.precio_unitario}`;\n  if (p.precio_lote) {\n    contextoProdutos += ` | Lote: $${p.precio_lote}`;\n  }\n  contextoProdutos += \"\\n\";\n});\n\n// Preparar contexto de clientes\nlet contextoClientes = \"\\nCLIENTES ACTIVOS:\\n\";\nclientes.forEach(c => {\n  contextoClientes += `- ${c.nombre_completo} (${c.dni_cuit})\\n`;\n  contextoClientes += `  Email: ${c.email} | Tel: ${c.telefono || 'N/A'}\\n`;\n});\n\n// Construir prompt para Gemini\nconst systemPrompt = `Eres un asistente de ventas experto de MEDICAL FARMA S.A., una distribuidora farmacéutica.\n\nTu rol es ayudar a los vendedores a:\n- Consultar información de productos (precios, stock, características)\n- Verificar disponibilidad de productos\n- Obtener datos de contacto de clientes\n- Recomendar productos según necesidades\n- Alertar sobre productos con stock bajo\n\nSIEMPRE responde en español de forma profesional, clara y concisa.\nSI un producto tiene stock bajo, menciona que deben contactar a compras.\nSI no encuentras información, sugiere alternativas o pide más detalles.\n\nINFORMACIÓN DISPONIBLE:\n${contextoProdutos}\n${contextoClientes}`;\n\nconst userPrompt = `CONSULTA DEL VENDEDOR: ${consulta}`;\n\nreturn {\n  json: {\n    system_prompt: systemPrompt,\n    user_prompt: userPrompt,\n    usuario_id: usuarioId,\n    consulta_original: consulta,\n    timestamp: new Date().toISOString()\n  }\n};"
+            },
+            "name": "Construir Prompt",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                750,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpQueryAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "key",
+                            "value": "={{$env.GEMINI_API_KEY}}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": []
+                },
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"{{$json.system_prompt}}\\n\\n{{$json.user_prompt}}\"\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"temperature\": 0.7,\n    \"topK\": 40,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 1024\n  }\n}",
+                "options": {}
+            },
+            "name": "Llamar Gemini API",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1000,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Procesar respuesta de Gemini\nconst geminiResponse = $json;\nconst respuestaIA = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text || \"Lo siento, no pude procesar tu consulta.\";\n\n// Extraer datos del contexto anterior\nconst consultaOriginal = $node[\"Construir Prompt\"].json.consulta_original;\nconst usuarioId = $node[\"Construir Prompt\"].json.usuario_id;\nconst timestamp = $node[\"Construir Prompt\"].json.timestamp;\n\nreturn {\n  json: {\n    respuesta: respuestaIA,\n    consulta: consultaOriginal,\n    usuario_id: usuarioId,\n    timestamp: timestamp,\n    modelo: \"gemini-1.5-pro\"\n  }\n};"
+            },
+            "name": "Procesar Respuesta",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1250,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "=INSERT INTO conversaciones_ia (usuario_id, mensaje_usuario, respuesta_ia, contexto, created_at) VALUES ('{{$json.usuario_id}}', '{{$json.consulta}}', '{{$json.respuesta}}', '{\"modelo\": \"{{$json.modelo}}\"}', '{{$json.timestamp}}')"
+            },
+            "name": "Guardar Conversación",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.4,
+            "position": [
+                1500,
+                400
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "supabase-credentials",
+                    "name": "Supabase Medical Pharma"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { \"success\": true, \"response\": $json.respuesta, \"timestamp\": $json.timestamp } }}"
+            },
+            "name": "Respuesta al Cliente",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1750,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook: Consulta IA": {
+            "main": [
+                [
+                    {
+                        "node": "Obtener Productos",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Obtener Clientes",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Obtener Productos": {
+            "main": [
+                [
+                    {
+                        "node": "Construir Prompt",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Obtener Clientes": {
+            "main": [
+                [
+                    {
+                        "node": "Construir Prompt",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Construir Prompt": {
+            "main": [
+                [
+                    {
+                        "node": "Llamar Gemini API",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Llamar Gemini API": {
+            "main": [
+                [
+                    {
+                        "node": "Procesar Respuesta",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Procesar Respuesta": {
+            "main": [
+                [
+                    {
+                        "node": "Guardar Conversación",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Guardar Conversación": {
+            "main": [
+                [
+                    {
+                        "node": "Respuesta al Cliente",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

@@ -1,0 +1,97 @@
+{
+    "name": "1. Nuevo Pedido (MEDICAL FARMA)",
+    "settings": {},
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "nuevo-pedido",
+                "options": {},
+                "responseMode": "lastNode"
+            },
+            "name": "Webhook: Nuevo Pedido",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "nuevo-pedido-medical-pharma"
+        },
+        {
+            "parameters": {
+                "fromEmail": "noreply@medical-farma.com",
+                "toEmail": "ventas@medical-farma.com",
+                "subject": "📦 Nuevo Pedido #{{$json[\"body\"][\"numero_pedido\"]}} (MEDICAL FARMA)",
+                "text": "Hola equipo,\n\nSe ha registrado un nuevo pedido en la plataforma.\n\nNúmero: {{$json[\"body\"][\"numero_pedido\"]}}\nCliente: {{$json[\"body\"][\"cliente_id\"]}}\nMonto Total: ${{$json[\"body\"][\"total\"]}}\n\nPor favor verificar en el panel administrativo.\n\nSaludos,\nEl Robot de MEDICAL FARMA",
+                "options": {}
+            },
+            "name": "Email a Ventas",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                500,
+                300
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "smtp-credentials",
+                    "name": "SMTP Medical Pharma"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { \"success\": true, \"message\": \"Pedido recibido correctamente\", \"pedido_id\": $json[\"body\"][\"numero_pedido\"] } }}"
+            },
+            "name": "Respuesta Exitosa",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                750,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "phoneNumber": "+543435136855",
+                "message": "📦 *Nuevo Pedido Recibido*\n\nPedido: #{{$json[\"body\"][\"numero_pedido\"]}}\nMonto: ${{$json[\"body\"][\"total\"]}}\n\nVerificar en dashboard.",
+                "options": {}
+            },
+            "name": "WhatsApp Alert (Futuro)",
+            "type": "n8n-nodes-base.whatsapp",
+            "typeVersion": 1,
+            "position": [
+                500,
+                450
+            ],
+            "disabled": true,
+            "notes": "PREPARADO PARA WHATSAPP BUSINESS API\n\nPasos para activar:\n1. Crear cuenta WhatsApp Business API\n2. Verificar negocio con Meta\n3. Obtener número dedicado\n4. Configurar credenciales en n8n\n5. Habilitar este nodo\n\nContacto depósito: +543435136855"
+        }
+    ],
+    "connections": {
+        "Webhook: Nuevo Pedido": {
+            "main": [
+                [
+                    {
+                        "node": "Email a Ventas",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email a Ventas": {
+            "main": [
+                [
+                    {
+                        "node": "Respuesta Exitosa",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

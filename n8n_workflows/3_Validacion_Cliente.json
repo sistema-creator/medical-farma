@@ -1,0 +1,108 @@
+{
+    "name": "3. Validación Cliente (MEDICAL FARMA)",
+    "settings": {},
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "validacion-cliente",
+                "options": {},
+                "responseMode": "lastNode"
+            },
+            "name": "Webhook: Nuevo Cliente",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "validacion-cliente-medical-pharma"
+        },
+        {
+            "parameters": {
+                "fromEmail": "noreply@medical-farma.com",
+                "toEmail": "admin@medical-farma.com",
+                "subject": "👤 Nuevo Cliente para Aprobar: {{$json[\"body\"][\"nombre_completo\"]}}",
+                "text": "Equipo de Administración,\n\nUn nuevo usuario se ha registrado y requiere aprobación.\n\nNombre: {{$json[\"body\"][\"nombre_completo\"]}}\nCUIT/DNI: {{$json[\"body\"][\"dni_cuit\"]}}\nEmail: {{$json[\"body\"][\"email\"]}}\n\nIngresa al panel de administración para APROBAR o RECHAZAR.\n\nLink: https://medical-farma.com/admin/usuarios",
+                "options": {}
+            },
+            "name": "Email a Admin",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                500,
+                250
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "smtp-credentials",
+                    "name": "SMTP Medical Pharma"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "fromEmail": "noreply@medical-farma.com",
+                "toEmail": "={{$json[\"body\"][\"email\"]}}",
+                "subject": "Bienvenido a MEDICAL FARMA",
+                "text": "Hola {{$json[\"body\"][\"nombre_completo\"]}},\n\nHemos recibido tu solicitud de registro.\n\nNuestro equipo verificará tus datos y recibirás una confirmación en las próximas 24 horas hábiles.\n\nGracias por confiar en nosotros.\nMEDICAL FARMA S.A.",
+                "options": {}
+            },
+            "name": "Email de Bienvenida",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                500,
+                400
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "smtp-credentials",
+                    "name": "SMTP Medical Pharma"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { \"success\": true, \"message\": \"Cliente registrado. Pendiente de aprobación.\" } }}"
+            },
+            "name": "Respuesta Exitosa",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                750,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook: Nuevo Cliente": {
+            "main": [
+                [
+                    {
+                        "node": "Email a Admin",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Email de Bienvenida",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email a Admin": {
+            "main": [
+                [
+                    {
+                        "node": "Respuesta Exitosa",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

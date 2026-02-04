@@ -1,0 +1,106 @@
+{
+    "name": "4. Seguridad y Accesos (Medical Farma)",
+    "settings": {},
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "seguridad-accesos",
+                "options": {}
+            },
+            "name": "Webhook: Evento Seguridad",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json[\"body\"][\"evento\"]}}",
+                            "value2": "cambio_password"
+                        }
+                    ]
+                }
+            },
+            "name": "Es Cambio Password?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                350,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "subject": "🔐 Seguridad: Cambio de Contraseña Exitoso",
+                "message": "Hola {{$json[\"body\"][\"nombre_completo\"]}},\n\nTe informamos que la contraseña de tu cuenta en Medical Farma ha sido cambiada exitosamente.\n\nSi no realizaste este cambio, por favor contacta a soporte de inmediato.\n\nSaludos,\nEquipo de Seguridad Medical Farma"
+            },
+            "name": "Email: Cambio Pass",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 1,
+            "position": [
+                600,
+                200
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "smtp-credentials"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "subject": "⚠️ Alerta de Seguridad: Inicio de Sesión",
+                "message": "Hola {{$json[\"body\"][\"nombre_completo\"]}},\n\nSe ha detectado un nuevo inicio de sesión en tu cuenta.\n\nDispositivo: {{$json[\"body\"][\"dispositivo\"]}}\nUbicación: {{$json[\"body\"][\"ubicacion\"]}}\nFecha: {{$json[\"body\"][\"fecha\"]}}\n\nSi fuiste tú, puedes ignorar este mensaje."
+            },
+            "name": "Email: Alerta Login",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 1,
+            "position": [
+                600,
+                400
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "smtp-credentials"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook: Evento Seguridad": {
+            "main": [
+                [
+                    {
+                        "node": "Es Cambio Password?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Es Cambio Password?": {
+            "main": [
+                [
+                    {
+                        "node": "Email: Cambio Pass",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Email: Alerta Login",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

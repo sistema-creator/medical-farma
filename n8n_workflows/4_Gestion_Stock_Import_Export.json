@@ -1,0 +1,173 @@
+{
+    "name": "Gestión Integral de Stock - Import/Export",
+    "nodes": [
+        {
+            "parameters": {
+                "path": "import-stock",
+                "options": {}
+            },
+            "name": "Webhook Import",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const products = items[0].json.body;\nreturn products.map(p => ({\n  json: {\n    nombre: p.nombre,\n    marcas: p.marcas ? p.marcas.split(',') : [],\n    descripcion_tecnica: p.descripcion_tecnica,\n    categoria: p.categoria,\n    stock_actual: Number(p.stock_actual) || 0,\n    stock_minimo: Number(p.stock_minimo) || 0,\n    precio_compra: Number(p.precio_compra) || 0,\n    impuesto_21: Number(p.impuesto_21) || 21,\n    impuesto_extra_1: Number(p.impuesto_extra_1) || 0,\n    impuesto_extra_2: Number(p.impuesto_extra_2) || 0,\n    impuesto_extra_3: Number(p.impuesto_extra_3) || 0,\n    precio_venta_final: Number(p.precio_venta_final) || 0,\n    sectores: p.sectores ? p.sectores.split(',') : [],\n    estado: 'activo'\n  }\n}));"
+            },
+            "name": "Parse Products",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "upsert",
+                "schema": {
+                    "__rls": "public"
+                },
+                "table": "productos",
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "nombre": "={{$json.nombre}}",
+                        "marcas": "={{$json.marcas}}",
+                        "descripcion_tecnica": "={{$json.descripcion_tecnica}}",
+                        "categoria": "={{$json.categoria}}",
+                        "stock_actual": "={{$json.stock_actual}}",
+                        "stock_minimo": "={{$json.stock_minimo}}",
+                        "precio_compra": "={{$json.precio_compra}}",
+                        "impuesto_21": "={{$json.impuesto_21}}",
+                        "impuesto_extra_1": "={{$json.impuesto_extra_1}}",
+                        "impuesto_extra_2": "={{$json.impuesto_extra_2}}",
+                        "impuesto_extra_3": "={{$json.impuesto_extra_3}}",
+                        "precio_venta_final": "={{$json.precio_venta_final}}",
+                        "sectores": "={{$json.sectores}}",
+                        "estado": "={{$json.estado}}"
+                    }
+                },
+                "options": {}
+            },
+            "name": "Supabase Upsert",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                500,
+                300
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "YOUR_SUPABASE_CRED_ID",
+                    "name": "Supabase Medical Farma"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "path": "export-stock",
+                "options": {}
+            },
+            "name": "Webhook Export",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                100,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "schema": {
+                    "__rls": "public"
+                },
+                "table": "productos",
+                "limit": 1000,
+                "options": {}
+            },
+            "name": "Get SQL Products",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                300,
+                500
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "YOUR_SUPABASE_CRED_ID",
+                    "name": "Supabase Medical Farma"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "toBinary",
+                "options": {
+                    "fileName": "inventario_medical_farma.csv"
+                }
+            },
+            "name": "Convert to CSV",
+            "type": "n8n-nodes-base.spreadsheetFile",
+            "typeVersion": 1,
+            "position": [
+                500,
+                500
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook Import": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Products",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Products": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase Upsert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook Export": {
+            "main": [
+                [
+                    {
+                        "node": "Get SQL Products",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get SQL Products": {
+            "main": [
+                [
+                    {
+                        "node": "Convert to CSV",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {},
+    "id": "stock_management_flow"
+}
