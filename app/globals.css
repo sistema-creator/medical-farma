@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-medical-gray-200;
+  }
+
+  body {
+    @apply bg-white text-medical-gray-900 antialiased;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 250, 245, 0.95)), url('/background-hospital.png');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-medical-blue-600 hover:bg-medical-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+  }
+
+  .btn-secondary {
+    @apply bg-white hover:bg-medical-gray-50 text-medical-blue-600 font-semibold py-3 px-6 rounded-lg border-2 border-medical-blue-600 transition-all duration-300;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6;
+  }
+
+  .section-title {
+    @apply text-4xl md:text-5xl font-bold text-medical-gray-900 mb-6;
+  }
+
+  .section-subtitle {
+    @apply text-xl text-medical-gray-600 max-w-3xl mx-auto;
+  }
+
+  .gradient-bg {
+    @apply bg-gradient-to-br from-medical-blue-50 via-white to-medical-gray-50;
+  }
+
+  .medical-gradient {
+    @apply bg-gradient-to-r from-medical-blue-600 to-medical-blue-800;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
