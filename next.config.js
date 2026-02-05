@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    output: 'export', // Activado para Ferozo Hosting (Static)
+    // output: 'export', // Desactivado para Vercel/GitHub (permite Serverless Functions)
     reactStrictMode: true,
     images: {
         unoptimized: true,

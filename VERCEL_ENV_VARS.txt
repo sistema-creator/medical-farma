@@ -1,0 +1,23 @@
+# Variables de Entorno para Vercel
+# Copia estos valores y agrégalos en: Vercel Project Settings > Environment Variables
+
+# --- SUPABASE (OBLIGATORIO) ---
+# Copiar desde tu archivo .env.local local
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+
+# --- GOOGLE GEMINI (OBLIGATORIO PARA IA) ---
+# Copiar desde tu archivo .env.local local (GEMINI_API_KEY)
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-1.5-pro-latest
+AI_MAX_CONTEXT_PRODUCTS=50
+
+# --- N8N BRIDGE (CRÍTICO) ---
+# Esta es la URL de tu servidor n8n real.
+# El frontend NO usará esta variable, solo el backend (API Bridge).
+# Valor ejemplo: https://vps-5604742-x.dattaweb.com/webhook
+N8N_WEBHOOK_URL=...
+
+# NOTA IMPORTANTE:
+# NO agregues NEXT_PUBLIC_N8N_WEBHOOK_URL en Vercel.
+# El código ha sido modificado para usar el bridge interno (/api/n8n-proxy) automáticamente.

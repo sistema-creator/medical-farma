@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { motion } from 'framer-motion'
 import { obtenerProductos, obtenerCategorias, eliminarProducto, type Producto } from '@/lib/productos'
+import { solicitarExportacionStock } from '@/lib/n8n'
+import BulkImportModal from '@/components/BulkImportModal'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function ProductosPage() {
@@ -26,6 +28,8 @@ function ProductosContent() {
     const [estadoFiltro, setEstadoFiltro] = useState<'activo' | 'inactivo' | ''>('')
     const [stockBajoFiltro, setStockBajoFiltro] = useState(false)
     const [vistaGrid, setVistaGrid] = useState(true)
+    const [importModalOpen, setImportModalOpen] = useState(false)
+    const [exporting, setExporting] = useState(false)
 
     useEffect(() => {
         cargarDatos()
@@ -53,6 +57,39 @@ function ProductosContent() {
         }
 
         setLoading(false)
+    }
+
+    async function handleExport() {
+        setExporting(true)
+        try {
+            // Nota: solicitarExportacionStock debe estar correctamente importada de lib/productos (o lib/n8n si se movió)
+            // Revisando lib/productos.ts no tiene solicitarExportacionStock, pero lib/n8n.ts si.
+            // Voy a usar solicitarExportacionStock de lib/n8n.ts que es lo correcto según el plan.
+            // Corregiré los imports en el próximo paso si es necesario, pero aquí asumo que la función existe o la traigo de n8n.
+            // Como en el import anterior puse '@/lib/productos', debo corregirlo.
+
+            // ERROR: En el replace anterior importé solicitarExportacionStock de lib/productos, pero está en lib/n8n.
+            // Para evitar error, usaré la función correcta aquí y corregiré el import arriba.
+
+            // ...espera, no puedo corregir el import en este mismo bloque tool call si son paralelos sin cuidado.
+            // Asumiré que el import de arriba fallará si no está en lib/productos.
+            // Verificando lib/productos.ts... NO TIENE solicitarExportacionStock.
+            // lib/n8n.ts TIENE solicitarExportacionStock.
+            // Por lo tanto, el import anterior fallará o necesitaré añadir un re-export en lib/productos o cambiar el import.
+            // Lo mejor es cambiar el import en page.tsx.
+
+            const result = await solicitarExportacionStock()
+            if (result.success) {
+                alert('Exportación solicitada. Recibirás el archivo por correo o n8n lo generará.')
+            } else {
+                alert('Error al solicitar exportación.')
+            }
+        } catch (error) {
+            console.error(error)
+            alert('Error al exportar.')
+        } finally {
+            setExporting(false)
+        }
     }
 
     async function handleEliminar(id: string) {
@@ -116,6 +153,56 @@ function ProductosContent() {
                     </div>
                 </div>
             </div>
+
+            {/* Actions Toolbar */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <div className="flex space-x-2">
+                    <button
+                        onClick={() => setImportModalOpen(true)}
+                        className="flex items-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium shadow-sm"
+                    >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        Importar CSV
+                    </button>
+                    <button
+                        onClick={handleExport}
+                        disabled={exporting}
+                        className="flex items-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium shadow-sm"
+                    >
+                        {exporting ? (
+                            <svg className="animate-spin w-4 h-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        ) : (
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                        )}
+                        Exportar CSV
+                    </button>
+                </div>
+                <button
+                    onClick={() => router.push('/productos/nuevo')}
+                    className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+                >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Nuevo Producto
+                </button>
+            </div>
+
+            <BulkImportModal
+                isOpen={importModalOpen}
+                onClose={() => setImportModalOpen(false)}
+                onSuccess={() => {
+                    cargarDatos()
+                    alert('Importación iniciada correctamente. Los productos aparecerán en breve.')
+                }}
+            />
 
             {/* Filters */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

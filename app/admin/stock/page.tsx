@@ -20,10 +20,14 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import AdminProtectedRoute from '@/components/AdminProtectedRoute'
 import { Producto, obtenerProductos, eliminarProducto } from '@/lib/productos'
+import { solicitarExportacionStock } from '@/lib/n8n'
+import BulkImportModal from '@/components/BulkImportModal'
 
 export default function StockManagementPage() {
     const [productos, setProductos] = useState<Producto[]>([])
     const [loading, setLoading] = useState(true)
+    const [importModalOpen, setImportModalOpen] = useState(false)
+    const [exporting, setExporting] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [sectorFilter, setSectorFilter] = useState('all')
 
@@ -38,6 +42,22 @@ export default function StockManagementPage() {
             setProductos(res.data)
         }
         setLoading(false)
+    }
+
+    async function handleExport() {
+        setExporting(true)
+        try {
+            const result = await solicitarExportacionStock()
+            if (result.success) {
+                alert('Exportación solicitada. Verifica tu correo o la carpeta de descargas de n8n.')
+            } else {
+                alert('Error al exportar.')
+            }
+        } catch (error) {
+            console.error('Error export:', error)
+        } finally {
+            setExporting(false)
+        }
     }
 
     const filteredProductos = productos.filter(p => {
@@ -71,21 +91,31 @@ export default function StockManagementPage() {
                                 <span>Nuevo Producto</span>
                             </Link>
                             <button
-                                onClick={() => {/* TODO: n8n import flow */ }}
+                                onClick={() => setImportModalOpen(true)}
                                 className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
                             >
                                 <Upload size={20} />
                                 <span>Importar</span>
                             </button>
                             <button
-                                onClick={() => {/* TODO: n8n export flow */ }}
+                                onClick={handleExport}
+                                disabled={exporting}
                                 className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
                             >
-                                <Download size={20} />
+                                {exporting ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div> : <Download size={20} />}
                                 <span>Exportar</span>
                             </button>
                         </div>
                     </div>
+
+                    <BulkImportModal
+                        isOpen={importModalOpen}
+                        onClose={() => setImportModalOpen(false)}
+                        onSuccess={() => {
+                            cargarProductos()
+                            alert('Importación procesada. Los cambios pueden tardar unos momentos en reflejarse.')
+                        }}
+                    />
 
                     {/* Stats Summary */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
