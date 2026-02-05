@@ -42,33 +42,22 @@ export default function AIAssistant() {
         setIsLoading(true)
 
         try {
-            const response = await fetch('/api/ai/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: textToSend,
-                    context: {
-                        conversationId: conversationId || undefined
-                    }
-                })
-            })
+            // Usamos la versión cliente para soportar hosting estático (Ferozo/cPanel)
+            // Esto evita el error 404 en /api/ai/chat
+            const { generateResponseClient } = await import('@/lib/gemini')
+            const { obtenerProductos } = await import('@/lib/productos')
 
-            if (!response.ok) {
-                throw new Error('Error al comunicarse con el asistente')
-            }
+            // Obtener contexto fresco (productos)
+            // Nota: En producción real, esto debería estar optimizado o cacheado
+            const prodRes = await obtenerProductos()
+            const productos = prodRes.success ? prodRes.data : []
 
-            const data = await response.json()
-
-            if (!conversationId) {
-                setConversationId(data.conversationId)
-            }
+            const responseText = await generateResponseClient(textToSend, productos)
 
             const assistantMessage: Message = {
                 role: 'assistant',
-                content: data.response,
-                timestamp: data.timestamp
+                content: responseText,
+                timestamp: new Date().toISOString()
             }
 
             setMessages(prev => [...prev, assistantMessage])
