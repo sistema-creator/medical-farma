@@ -151,6 +151,37 @@ export async function generateResponse(
 }
 
 /**
+ * Genera respuesta directamente desde el cliente (para hosting estático)
+ * ADVERTENCIA: Requiere exponer la API Key en variables NEXT_PUBLIC_
+ */
+export async function generateResponseClient(
+    userMessage: string,
+    productos: any[],
+    clientes: any[] = []
+): Promise<string> {
+    try {
+        const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY
+        if (!apiKey) throw new Error('API Key no configurada')
+
+        const genAI = new GoogleGenerativeAI(apiKey)
+        const model = genAI.getGenerativeModel({ model: GEMINI_MODEL })
+
+        const productContext = buildProductContext(productos)
+        const clientContext = clientes.length > 0 ? buildClientContext(clientes) : ""
+        const systemPrompt = buildSystemPrompt(productContext, clientContext)
+
+        const fullPrompt = `${systemPrompt}\n\nCONSULTA DEL VENDEDOR:\n${userMessage}`
+
+        const result = await model.generateContent(fullPrompt)
+        const response = await result.response
+        return response.text()
+    } catch (error) {
+        console.error('Error en Gemini Client:', error)
+        throw error
+    }
+}
+
+/**
  * Genera respuesta con streaming (para UI más fluida)
  */
 export async function generateResponseStream(

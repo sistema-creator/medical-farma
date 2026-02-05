@@ -3,7 +3,8 @@
  * Librería para interactuar con los flujos de automatización de n8n
  */
 
-const N8N_BASE_URL = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://vps-5604742-x.dattaweb.com/webhook'
+// Usamos la URL pública de n8n directamente para hosting estático
+const N8N_WEBHOOK_URL = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://vps-5604742-x.dattaweb.com/webhook'
 
 /**
  * Dispara un flujo de trabajo en n8n
@@ -12,7 +13,9 @@ const N8N_BASE_URL = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://vps-560
  */
 export async function triggerWorkflow(webhookPath: string, data: any) {
     try {
-        const response = await fetch(`${N8N_BASE_URL}/${webhookPath}`, {
+        // Enviar directamente a n8n
+        // Nota: Asegúrate de que n8n tenga CORS habilitado si esto falla desde el navegador
+        const response = await fetch(`${N8N_WEBHOOK_URL}/${webhookPath}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -20,7 +23,7 @@ export async function triggerWorkflow(webhookPath: string, data: any) {
             body: JSON.stringify({
                 ...data,
                 timestamp: new Date().toISOString(),
-                source: 'medical-farma-web'
+                source: 'medical-farma-web-static'
             }),
         })
 
